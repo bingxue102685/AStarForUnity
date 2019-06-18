@@ -62,10 +62,10 @@ namespace AStar
     public class NodeInfo
     {
         //当前点到目标点的估算值
-        public int HValue;
+        public float HValue;
         //当前点到起点的实际值
-        public int GValue;
-        public int FValue
+        public float GValue;
+        public float FValue
         {
             get
             {
@@ -130,7 +130,7 @@ namespace AStar
 
         public int Compare(NodeInfo x, NodeInfo y)
         {
-            return x.FValue - y.FValue;
+            return (int)(x.FValue - y.FValue);
         }
 
         public void SortOpenList()
@@ -176,6 +176,15 @@ namespace AStar
         {
             //即openlist第一个值
             return openList[0];
+        }
+
+        public bool IsEmpty()
+        {
+            if (openList.Count == 0)
+            {
+                return true;
+            }
+            return false;
         }
 
         public void Clear()
@@ -251,6 +260,8 @@ namespace AStar
 
         private static NodeManager nodeManager;
 
+        public Action<List<NodeInfo>> printClose;
+
         public static NodeManager instance
         {
             get
@@ -273,7 +284,7 @@ namespace AStar
         {
             int parentGridX = 0;
             int parentGridY = 0;
-            int parentGValue = 0;
+            float parentGValue = 0;
             if (parentNode != null)
             {
                 parentGridX = parentNode.gridX;
@@ -310,28 +321,42 @@ namespace AStar
             openNodeList.AddNode(startNode);
         }
 
-        public int CalculateHValue(NodeInfo node)
+        public float CalculateHValue(NodeInfo node)
         {
             //采用Manhattan
             return CalculateHValue(node.gridX, node.gridY);
         }
-
-        public int CalculateHValue(int gridX, int gridY)
+        public float CalculateHValue(int gridX, int gridY)
         {
             //到达结束点，H直接等0，方便结束
             if (gridX == endGridX && gridY == endGridY)
             {
                 return 0;
             }
-            return (Math.Abs(endGridX - gridX) + Math.Abs(endGridY - gridY)) * 10;
+            float HValue = Manhattan(gridX, gridY);
+            return HValue * 10;
         }
 
-        public int CalculateGValue(NodeInfo node)
+        public float Heuristic(int gridX, int gridY)
+        {
+            float x = (float)Math.Pow(endGridX - gridX, 2);
+            float y = (float)Math.Pow(endGridY - gridY, 2);
+
+            // Require sqrt
+            return (float)Math.Sqrt(x + y);
+        }
+
+        public float Manhattan(int gridX, int gridY)
+        {
+            return (Math.Abs(endGridX - gridX) + Math.Abs(endGridY - gridY));
+        }
+
+        public float CalculateGValue(NodeInfo node)
         {
             return CalculateGValue(node.direction, node.parentNode.GValue);
         }
 
-        public int CalculateGValue(DirectionRelativeParent direction, int parentGValue)
+        public float CalculateGValue(DirectionRelativeParent direction, float parentGValue)
         {
             if (direction == DirectionRelativeParent.END)
             {
@@ -453,6 +478,9 @@ namespace AStar
             //如果是障碍物，则不创建
             if (IsBlock(girdX, gridY)) return;
 
+            //如果已经在closelist 则不创建
+            if (closeNodeList.IsAlreadyInCloseList(girdX, gridY)) return;
+
             //创建并加入Open列表
             openNodeList.AddNode(CreateNode(girdX, gridY, parentNode));
         }
@@ -461,7 +489,7 @@ namespace AStar
         {
             currentNode = startNode;
 
-            while (currentNode.direction != DirectionRelativeParent.END)
+            while (currentNode.direction != DirectionRelativeParent.END && !openNodeList.IsEmpty())
             {
                 //生成周围节点
                 GenerateRoundNode(currentNode);
@@ -469,16 +497,21 @@ namespace AStar
                 openNodeList.RemoveNode(currentNode);
                 //把当前节点加入closelis
                 closeNodeList.AddNode(currentNode);
+                //如果已经没有可用的open节点
+                if (openNodeList.IsEmpty()) break;
                 //选取F值最小的节点
                 currentNode = openNodeList.GetMinFValueNode();
-
-                //printClose(closeNodeList.closeList);
+                //打印寻路的路径
+                printClose?.Invoke(closeNodeList.closeList);
             };
 
-            //把结束的点 放入封闭表
-            closeNodeList.AddNode(currentNode);
-            //找出可用路径
-            GenerateAvailableWay();
+            if (currentNode.direction == DirectionRelativeParent.END)
+            {
+                //把结束的点 放入封闭表
+                closeNodeList.AddNode(currentNode);
+                //找出可用路径
+                GenerateAvailableWay();
+            }
             //寻路结束
             Clear();
         }

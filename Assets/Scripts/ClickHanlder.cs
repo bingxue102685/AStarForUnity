@@ -91,13 +91,26 @@ public class ClickHanlder : MonoBehaviour
 
     private void AStarFindWay()
     {
+        AStar.NodeManager.instance.printClose += PrintPath;
+        var sw = new System.Diagnostics.Stopwatch();
+        sw.Start();
         AStar.AStarArithmetic.instance.Init(startPos.x, startPos.y, endPos.x, endPos.y, blockList, true);
         AStar.AStarArithmetic.instance.StartFindWay();
+        sw.Stop();
+        Debug.Log("find way elapsed:" + sw.ElapsedMilliseconds);
+        
         var aStarWay = AStar.AStarArithmetic.instance.GetAvailableWay();
 
-        for (int i = 1; i < aStarWay.Count - 1; i++)
+        if (aStarWay.Count > 0)
         {
-            tilemap.SetTile(new Vector3Int(aStarWay[i].x, aStarWay[i].y, 0), wayTile);
+            for (int i = 1; i < aStarWay.Count - 1; i++)
+            {
+                tilemap.SetTile(new Vector3Int(aStarWay[i].x, aStarWay[i].y, 0), wayTile);
+            }
+        }
+        else
+        {
+            Debug.LogError("未找到可用路径！寻路失败！");
         }
     }
 
@@ -108,6 +121,14 @@ public class ClickHanlder : MonoBehaviour
         for (int i = 1; i < aStarWay.Count - 1; i++)
         {
             tilemap.SetTile(new Vector3Int(aStarWay[i].x, aStarWay[i].y, 0), normalTile);
+        }
+    }
+
+    private void PrintPath(List<AStar.NodeInfo> path)
+    {
+        for (int i = 0; i < path.Count; i++)
+        {
+            tilemap.SetTile(new Vector3Int(path[i].gridX, path[i].gridY, 0), endTile);
         }
     }
 }
