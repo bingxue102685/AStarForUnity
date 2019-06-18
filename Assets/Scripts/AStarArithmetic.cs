@@ -102,7 +102,6 @@ namespace AStar
 
         public void AddNode(NodeInfo node)
         {
-            bool isNeedSort = false;
             if (IsAlreadyInOpenList(node))
             {
                 var nodeInOpenList = GetNodeInfoByGridString(node.toString);
@@ -111,14 +110,12 @@ namespace AStar
                 {
                     nodeInOpenList.GValue = node.GValue;
                     nodeInOpenList.parentNode = node.parentNode;
-                    isNeedSort = true;
                 }
             }
             else
             {
                 openList.Add(node);
                 openDict.Add(node.toString, node);
-                isNeedSort = true;
             }
 
             //不在此处进行sort
@@ -341,8 +338,6 @@ namespace AStar
         {
             float x = (float)Math.Pow(endGridX - gridX, 2);
             float y = (float)Math.Pow(endGridY - gridY, 2);
-
-            // Require sqrt
             return (float)Math.Sqrt(x + y);
         }
 
